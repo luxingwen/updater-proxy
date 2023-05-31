@@ -27,6 +27,15 @@ type Message struct {
 	Timeout time.Duration   // 添加 Timeout 字段
 }
 
+const (
+	METHOD_REQUEST  = "request"
+	METHOD_RESPONSE = "response"
+
+	CODE_SUCCESS = "success"
+	CODE_ERROR   = "error"
+	CODE_TIMEOUT = "timeout"
+)
+
 type Response struct {
 	Code string          `json:"code"`
 	Msg  string          `json:"msg"`

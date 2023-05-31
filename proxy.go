@@ -1,5 +1,7 @@
 package updaterproxy
 
+import "encoding/json"
+
 // import "encoding/json"
 
 type Proxy struct {
@@ -7,41 +9,38 @@ type Proxy struct {
 	sm *ServerManager
 }
 
-// func (proxy *Proxy) SendToClient(message *Message) {
-// 	client := proxy.cm.GetClient(message.To, message.To.Sn, message.To.Hostname, message.To.Ip)
-// 	if client != nil {
-// 		jsonMessage, err := json.Marshal(message)
-// 		if err != nil {
-// 			return
-// 		}
-// 		client.Send(jsonMessage)
-// 	} else {
+func NewProxy(cm *ClientManager, sm *ServerManager) *Proxy {
+	return &Proxy{
+		cm: cm,
+		sm: sm,
+	}
+}
 
-// 		resp := *&Response{
-// 			Code: "404",
-// 			Msg:  "Not Found",
-// 		}
+func (proxy *Proxy) SendToClient(message *Message) {
+	client := proxy.cm.GetClient(message.To)
+	if client != nil {
+		jsonMessage, err := json.Marshal(message)
+		if err != nil {
+			return
+		}
+		client.Send(jsonMessage)
+	} else {
+		message.Code = "404"
+		message.Msg = "Not Found"
+		message.Method = METHOD_RESPONSE
+		proxy.SendToServer(message)
+	}
+}
 
-// 		jsonMessage, err := json.Marshal(resp)
+func (proxy *Proxy) SendToServer(message *Message) {
+	server := proxy.sm.GetServer()
+	if server != nil {
+		jsonMessage, err := json.Marshal(message)
+		if err != nil {
+			return
+		}
+		server.Send(jsonMessage)
+	} else {
 
-// 		if err != nil {
-// 			return
-// 		}
-
-// 		message.Data = jsonMessage
-// 		proxy.SendToServer(message)
-// 	}
-// }
-
-// func (proxy *Proxy) SendToServer(message *Message) {
-// 	server := proxy.sm.GetServer()
-// 	if server != nil {
-// 		jsonMessage, err := json.Marshal(message)
-// 		if err != nil {
-// 			return
-// 		}
-// 		server.Send(jsonMessage)
-// 	} else {
-
-// 	}
-// }
+	}
+}

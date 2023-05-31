@@ -13,12 +13,14 @@ type Server struct {
 	send        chan []byte
 	Url         string
 	IsConnected bool
+	Proxy       *Proxy
 }
 
-func NewServer(url string) *Server {
+func NewServer(url string, proxy *Proxy) *Server {
 	return &Server{
-		Url:  url,
-		send: make(chan []byte),
+		Proxy: proxy,
+		Url:   url,
+		send:  make(chan []byte),
 	}
 }
 
@@ -93,7 +95,15 @@ func (s *Server) readPump() {
 			s.Connect()
 			continue
 		}
+
 		log.Println("recv: ", string(message))
+
+		var msg Message
+		err = json.Unmarshal(message, &msg)
+		if err != nil {
+			continue
+		}
+		s.Proxy.SendToClient(&msg)
 		// 这里你可以添加处理消息的逻辑
 	}
 }

@@ -31,55 +31,29 @@ func (manager *ClientManager) Remove(client *Client) {
 	}
 }
 
-func (manager *ClientManager) GetClient(vmuuid, sn, hostname, ip string) *Client {
+func (manager *ClientManager) Count() int {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	return len(manager.clients)
+}
+
+func (manager *ClientManager) GetClient(clientUuid string) *Client {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
-	if vmuuid == "" && sn == "" && hostname == "" && ip == "" {
+	if clientUuid != "" {
 		for client := range manager.clients {
-			if (client.Vmuuid == vmuuid && vmuuid != "") && (client.Sn == sn && sn != "") && (client.Hostname == hostname && hostname != "") && (client.Ip == ip && ip != "") {
+			if client.UUID == clientUuid {
 				return client
 			}
 		}
 	}
 
-	if vmuuid != "" {
-		for client := range manager.clients {
-			if client.Vmuuid == vmuuid {
-				return client
-			}
-		}
-	}
-
-	if sn != "" {
-		for client := range manager.clients {
-			if client.Sn == sn {
-				return client
-			}
-		}
-	}
-
-	if hostname != "" {
-		for client := range manager.clients {
-			if client.Hostname == hostname {
-				return client
-			}
-		}
-	}
-
-	if ip != "" {
-		for client := range manager.clients {
-			if client.Ip == ip {
-				return client
-			}
-		}
-
-	}
 	return nil
 }
 
-func (manager *ClientManager) SendToClient(vmuuid, sn, hostname, ip string, message []byte) (err error) {
-	client := manager.GetClient(vmuuid, sn, hostname, ip)
+func (manager *ClientManager) SendToClient(clientUuid string, message []byte) (err error) {
+	client := manager.GetClient(clientUuid)
 	if client != nil {
 		client.Send(message)
 		return nil

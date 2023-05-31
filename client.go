@@ -1,11 +1,15 @@
 package updaterproxy
 
-import "github.com/gorilla/websocket"
+import (
+	"encoding/json"
+
+	"github.com/gorilla/websocket"
+)
 
 type Client struct {
-	conn *websocket.Conn
-	send chan []byte
-
+	conn     *websocket.Conn
+	send     chan []byte
+	UUID     string
 	Vmuuid   string `json:"vmuuid"`
 	Sn       string `json:"sn"`
 	Hostname string `json:"hostname"`
@@ -13,13 +17,21 @@ type Client struct {
 	OS       string `json:"os"`
 	Arch     string `json:"arch"`
 	Version  string `json:"version"`
+	Proxy    *Proxy
 }
 
-func NewClient(conn *websocket.Conn) *Client {
+func NewClient(conn *websocket.Conn, Uuid string, proxy *Proxy) *Client {
 	return &Client{
-		conn: conn,
-		send: make(chan []byte),
+		UUID:  Uuid,
+		conn:  conn,
+		send:  make(chan []byte),
+		Proxy: proxy,
 	}
+}
+
+func (c *Client) Start() {
+	go c.readPump()
+	go c.writePump()
 }
 
 func (c *Client) readPump() {
@@ -31,7 +43,12 @@ func (c *Client) readPump() {
 		if err != nil {
 			return
 		}
-		c.send <- message
+		var msg Message
+		err = json.Unmarshal(message, &msg)
+		if err != nil {
+			continue
+		}
+		c.Proxy.SendToServer(&msg)
 	}
 }
 
