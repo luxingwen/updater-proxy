@@ -15,12 +15,15 @@ type TargetClient struct {
 }
 
 type Message struct {
+	From    string          `json:"from"`
+	To      string          `json:"to"`
 	Id      string          `json:"id"`
 	Type    string          `json:"type"`
-	From    string          `json:"from"`
-	To      TargetClient    `json:"to"`
 	Method  string          `json:"method"`
 	Data    json.RawMessage `json:"data"`
+	Code    string          `json:"code"`
+	Msg     string          `json:"msg"` // 新增 Msg 字段
+	TraceId string          `json:"traceId"`
 	Timeout time.Duration   // 添加 Timeout 字段
 }
 

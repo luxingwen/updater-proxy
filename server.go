@@ -1,6 +1,7 @@
 package updaterproxy
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
@@ -16,7 +17,8 @@ type Server struct {
 
 func NewServer(url string) *Server {
 	return &Server{
-		Url: url,
+		Url:  url,
+		send: make(chan []byte),
 	}
 }
 
@@ -29,6 +31,8 @@ func (s *Server) Connect() error {
 	}
 	s.conn = conn
 	s.IsConnected = true
+	log.Println("Connected to server:", s.Url)
+	return nil
 }
 
 func (s *Server) Disconnect() {
@@ -37,7 +41,9 @@ func (s *Server) Disconnect() {
 }
 
 func (s *Server) writePump() {
+	ticker := time.NewTicker(60 * time.Second)
 	defer func() {
+		ticker.Stop()
 		s.Disconnect()
 	}()
 	for {
@@ -48,6 +54,28 @@ func (s *Server) writePump() {
 				return
 			}
 			s.conn.WriteMessage(websocket.TextMessage, message)
+
+		case <-ticker.C:
+
+			mdata := make(map[string]interface{})
+			mdata["time"] = time.Now().Unix()
+			bdata, err := json.Marshal(mdata)
+			if err != nil {
+				log.Println("json marshal error:", err)
+				continue
+			}
+
+			msg := Message{
+				Type: "ProxyHeartBeat",
+				Data: json.RawMessage(bdata),
+			}
+
+			b, err := json.Marshal(msg)
+			if err != nil {
+				log.Println("json marshal error:", err)
+				continue
+			}
+			s.conn.WriteMessage(websocket.TextMessage, b)
 		}
 	}
 }
