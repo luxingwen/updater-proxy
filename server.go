@@ -103,16 +103,25 @@ func (s *Server) readPump() {
 		if err != nil {
 			continue
 		}
+
 		s.Proxy.SendToClient(&msg)
 		// 这里你可以添加处理消息的逻辑
 	}
 }
 
 func (s *Server) Start() error {
-	err := s.Connect()
-	if err != nil {
-		return err
+
+	for {
+		err := s.Connect()
+		if err != nil {
+			log.Println("connect to server error:", err)
+			log.Println("reconnecting...")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		break
 	}
+
 	go s.readPump()
 	go s.writePump()
 	return nil

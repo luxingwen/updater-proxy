@@ -2,6 +2,7 @@ package updaterproxy
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/gorilla/websocket"
 )
@@ -17,15 +18,17 @@ type Client struct {
 	OS       string `json:"os"`
 	Arch     string `json:"arch"`
 	Version  string `json:"version"`
+	HostIp   string `json:"hostIp"`
 	Proxy    *Proxy
 }
 
-func NewClient(conn *websocket.Conn, Uuid string, proxy *Proxy) *Client {
+func NewClient(conn *websocket.Conn, Uuid string, proxy *Proxy, hostip string) *Client {
 	return &Client{
-		UUID:  Uuid,
-		conn:  conn,
-		send:  make(chan []byte),
-		Proxy: proxy,
+		UUID:   Uuid,
+		conn:   conn,
+		send:   make(chan []byte),
+		Proxy:  proxy,
+		HostIp: hostip,
 	}
 }
 
@@ -41,13 +44,16 @@ func (c *Client) readPump() {
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
+			log.Println("read:", err)
 			return
 		}
 		var msg Message
 		err = json.Unmarshal(message, &msg)
 		if err != nil {
+			log.Println("json unmarshal err:", err)
 			continue
 		}
+		msg.ClientIP = c.HostIp
 		c.Proxy.SendToServer(&msg)
 	}
 }

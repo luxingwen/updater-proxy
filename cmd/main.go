@@ -25,13 +25,16 @@ func main() {
 	proxyServer := proxy.NewProxy(clientManager, serverManager)
 
 	server := proxy.NewServer("ws://127.0.0.1:8080/api/v1/ws/proxy-uuid1", proxyServer)
-	server.Start()
+	go server.Start()
 
 	serverManager.Add(server)
 
 	router := gin.Default()
 
 	router.GET("/api/v1/ws/:uuid", func(c *gin.Context) {
+
+		clientip := c.ClientIP()
+
 		uid := c.Param("uuid")
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -44,7 +47,9 @@ func main() {
 
 		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%d", count)))
 
-		client := proxy.NewClient(conn, uid, proxyServer)
+		client := proxy.NewClient(conn, uid, proxyServer, clientip)
+
+		clientManager.Add(client)
 		go client.Start()
 
 	})
