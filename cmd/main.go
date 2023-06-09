@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"path/filepath"
+	"strings"
 	proxy "updater-proxy"
 
 	"github.com/gin-gonic/gin"
@@ -49,16 +51,24 @@ func main() {
 		tagerUrls = append(tagerUrls, u)
 	}
 
-	// 创建反向代理池
-	proxyPool := make([]*httputil.ReverseProxy, len(tagerUrls))
-	for i, targetURL := range tagerUrls {
-		proxyPool[i] = httputil.NewSingleHostReverseProxy(targetURL)
-	}
-
 	// 定义代理转发的路由
 	router.GET("/api/v1/pkg/*path", func(c *gin.Context) {
+
+		dstpath := "/api/v1/pkg" + getFilePath(c)
+
 		// 随机选择一个代理
-		proxy := proxyPool[rand.Intn(len(proxyPool))]
+		targetURL := tagerUrls[rand.Intn(len(tagerUrls))]
+
+		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+		proxy.Director = func(req *http.Request) {
+			req.URL.Scheme = targetURL.Scheme
+			req.URL.Host = targetURL.Host
+			req.URL.Path = dstpath
+			req.Host = ""
+			req.Header.Del("Host")
+			req.Header.Del("X-Forwarded-For")
+		}
 
 		// 使用选定的代理进行转发
 		proxy.ServeHTTP(c.Writer, c.Request)
@@ -89,4 +99,13 @@ func main() {
 
 	log.Println("proxy server started on port:", proxy.GetConfig().Port)
 	router.Run(proxy.GetConfig().Port)
+}
+
+func getFilePath(c *gin.Context) (r string) {
+	dstpath := c.Param("path")
+	if !strings.HasPrefix(dstpath, "/") {
+		dstpath = "/" + dstpath
+	}
+	dstpath = filepath.Clean(dstpath)
+	return dstpath
 }

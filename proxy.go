@@ -20,7 +20,9 @@ func NewProxy(cm *ClientManager, sm *ServerManager) *Proxy {
 }
 
 func (proxy *Proxy) SendToClient(message *Message) {
-	log.Println("SendToClient")
+
+	b, _ := json.Marshal(message)
+	log.Println("SendToClient:", string(b))
 
 	client := proxy.cm.GetClient(message.To)
 	if client != nil {
@@ -41,7 +43,8 @@ func (proxy *Proxy) SendToClient(message *Message) {
 }
 
 func (proxy *Proxy) SendToServer(message *Message) {
-	log.Println("SendToServer")
+	b, _ := json.Marshal(message)
+	log.Println("SendToServer:", string(b))
 	server := proxy.sm.GetServer()
 	if server != nil {
 		jsonMessage, err := json.Marshal(message)
