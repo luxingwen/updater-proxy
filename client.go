@@ -61,14 +61,17 @@ func (c *Client) readPump() {
 func (c *Client) writePump() {
 	defer func() {
 		c.conn.Close()
+		log.Printf("writePump: %s closed", c.UUID)
 	}()
 	for {
 		select {
 		case message, ok := <-c.send:
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Println("writePump: !ok")
 				return
 			}
+			log.Println("writePump:", string(message))
 			c.conn.WriteMessage(websocket.TextMessage, message)
 		}
 	}
