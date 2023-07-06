@@ -43,8 +43,8 @@ func (proxy *Proxy) SendToClient(message *Message) {
 }
 
 func (proxy *Proxy) SendToServer(message *Message) {
-	b, _ := json.Marshal(message)
-	log.Println("SendToServer:", string(b))
+	//b, _ := json.Marshal(message)
+	//log.Println("SendToServer:", string(b))
 	server := proxy.sm.GetServer()
 	if server != nil {
 		jsonMessage, err := json.Marshal(message)
@@ -56,4 +56,21 @@ func (proxy *Proxy) SendToServer(message *Message) {
 	} else {
 		log.Println("SendToServer error: server not found")
 	}
+}
+
+func (proxy *Proxy) SendClientOfflineToServer(clientUuid string) {
+
+	if clientUuid == "" {
+		return
+	}
+
+	message := &Message{
+		Method: METHOD_REQUEST,
+		To:     "",
+		From:   clientUuid,
+		Type:   "v1/ClientOffline",
+		Msg:    "Client offline",
+		Code:   "200",
+	}
+	proxy.SendToServer(message)
 }

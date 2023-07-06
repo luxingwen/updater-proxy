@@ -12,6 +12,7 @@ import (
 	proxy "updater-proxy"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -30,7 +31,10 @@ func main() {
 
 	proxyServer := proxy.NewProxy(clientManager, serverManager)
 
-	serverAddress := proxy.GetConfig().Servers[0] + proxy.GetConfig().ProxyId
+	proxyId := "proxy-" + uuid.New().String()
+	log.Println("proxyId:", proxyId)
+
+	serverAddress := proxy.GetConfig().Servers[0] + proxyId
 
 	log.Println("serverAddress:", serverAddress)
 
@@ -74,12 +78,14 @@ func main() {
 		proxy.ServeHTTP(c.Writer, c.Request)
 	})
 
-	router.GET("/api/v1/ws/:uuid", func(c *gin.Context) {
+	router.GET("/api/v1/ws/:uuid/:nonce", func(c *gin.Context) {
 
 		clientip := c.ClientIP()
 
 		uid := c.Param("uuid")
+		nonce := c.Param("nonce")
 
+		log.Println("uid:", uid, "nonce:", nonce)
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
 			// Handle the error
@@ -90,7 +96,7 @@ func main() {
 
 		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%d", count)))
 
-		client := proxy.NewClient(conn, uid, proxyServer, clientip)
+		client := proxy.NewClient(conn, uid, proxyServer, clientip, nonce)
 
 		clientManager.Add(client)
 		go client.Start()

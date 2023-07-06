@@ -85,8 +85,10 @@ func (s *Server) writePump() {
 func (s *Server) readPump() {
 	defer func() {
 		s.Disconnect()
+		log.Println("readPump: disconnected")
 	}()
 	for {
+		log.Println("reading from server for message...")
 		_, message, err := s.conn.ReadMessage()
 		if err != nil {
 			log.Println("read:", err)
@@ -101,6 +103,7 @@ func (s *Server) readPump() {
 		var msg Message
 		err = json.Unmarshal(message, &msg)
 		if err != nil {
+			log.Println("json unmarshal err:", err)
 			continue
 		}
 

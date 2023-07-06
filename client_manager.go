@@ -6,28 +6,30 @@ import (
 )
 
 type ClientManager struct {
-	clients map[*Client]bool
+	clients map[string]*Client
 	mu      sync.Mutex
 }
 
 func NewClientManager() *ClientManager {
 	return &ClientManager{
-		clients: make(map[*Client]bool),
+		clients: make(map[string]*Client),
 	}
 }
 
 func (manager *ClientManager) Add(client *Client) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
-	manager.clients[client] = true
+	manager.clients[client.UUID] = client
 }
 
 func (manager *ClientManager) Remove(client *Client) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
-	if _, ok := manager.clients[client]; ok {
-		delete(manager.clients, client)
+	if _, ok := manager.clients[client.UUID]; ok {
+		delete(manager.clients, client.UUID)
 		close(client.send)
+		client.conn.Close()
+		client = nil
 	}
 }
 
@@ -41,12 +43,9 @@ func (manager *ClientManager) GetClient(clientUuid string) *Client {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
-	if clientUuid != "" {
-		for client := range manager.clients {
-			if client.UUID == clientUuid {
-				return client
-			}
-		}
+	client, ok := manager.clients[clientUuid]
+	if ok {
+		return client
 	}
 
 	return nil
